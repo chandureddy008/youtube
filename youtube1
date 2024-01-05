@@ -3,8 +3,6 @@ pipeline {
     
     parameters {
         choice(name: 'action', choices: 'create\n delete', description: 'Select create or destroy.')
-        string(name: 'DOCKER_HUB_USERNAME', defaultValue: 'chandureddy008', description: 'Docker Hub Username')
-        string(name: 'IMAGE_NAME', defaultValue: 'youtube', description: 'Docker Image Name')
     }
 
     tools {
@@ -38,31 +36,6 @@ pipeline {
                     // Perform NPM installation steps here
                     // Your NPM installation code goes here
                     sh 'npm install' // Example npm installation command
-                }
-            }
-        }
-
-        stage('Docker Build') {
-            when { 
-                expression { params.action == 'create' }
-            }    
-            steps{
-                script {
-                   def dockerHubUsername = params.DOCKER_HUB_USERNAME
-                   def imageName = params.IMAGE_NAME
-
-                   dockerBuild(dockerHubUsername, imageName)
-                }
-            }
-        }
-        
-        stage('Trivy image') {
-            when { 
-                expression { params.action == 'create' }
-            }    
-            steps{
-                script {
-                    trivyImage()
                 }
             }
         }
