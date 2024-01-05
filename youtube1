@@ -37,7 +37,9 @@ pipeline {
             }
             steps {
                 script {
+                    sonarqubeAnalysis()
                     // Perform SonarQube analysis steps here
+                    // Your SonarQube analysis code goes here
                 }
             }
         }
@@ -61,11 +63,33 @@ pipeline {
             steps {
                 script {
                     // Perform NPM installation steps here
+                    // Your NPM installation code goes here
                 }
             }
         }
 
-        // Other stages can be added here
+        stage('Trivy file scan') {
+            when {
+                expression { params.action == 'create' }
+            }
+            steps {
+                script {
+                    trivyFs()
+                }
+            }
+        }
+
+        stage('OWASP FS SCAN') {
+            when {
+                expression { params.action == 'create' }
+            }
+            steps {
+                dependencyCheck additionalArguments: '--scan ./ --disableYarnAudit --disableNodeAudit', odcInstallation: 'DP-Check'
+                dependencyCheckPublisher pattern: '**/dependency-check-report.xml'
+            }
+        }
+
+        // Add any other stages you want here
         
         stage('Slack Notifications') {
             when {
