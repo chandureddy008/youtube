@@ -17,7 +17,7 @@ pipeline{
         }
         stage('checkout from Git'){
             steps{
-                checkoutGit('https://github.com/chandureddy008/youtube1.git', 'main')
+                checkoutGit('https://github.com/chandureddy008/youtube.git', 'main')
             }
         }
      }
