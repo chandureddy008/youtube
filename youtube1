@@ -4,6 +4,15 @@ pipeline {
     parameters {
         choice(name: 'action', choices: 'create\n delete', description: 'Select create or destroy.')
     }
+
+    tools {
+        jdk 'jdk17'
+        nodejs 'node16'
+    }
+
+    environment {
+        SCANNER_HOME = tool 'sonar-scanner'
+    }
     
     stages {
         stage('clean workspace') {
@@ -21,6 +30,40 @@ pipeline {
                 }
             }
         }
+
+        stage('SonarQube Analysis') {
+            when {
+                expression { params.action == 'create' }
+            }
+            steps {
+                script {
+                    sonarqubeAnalysis()
+                }
+            }
+        }
+
+        stage('SonarQube Quality Gate') {
+            when {
+                expression { params.action == 'create' }
+            }
+            steps {
+                script {
+                    def credentialsId = 'Sonar-token'
+                    qualityGate(credentialsId)
+                }
+            }
+        }
+
+        stage('Npm') {
+            when {
+                expression { params.action == 'create' }
+            }
+            steps {
+                script {
+                    npmInstall()
+                }
+            }
+        }
     }
     
     post {
@@ -33,7 +76,7 @@ pipeline {
                 ]
                 
                 slackSend(
-                    channel: '#channel_name', // Replace with your channel name
+                    channel: '#youtube', // Replace with your channel name
                     color: COLOR_MAP[currentBuild.currentResult],
                     message: "*${currentBuild.currentResult}:* Job ${env.JOB_NAME} \n build ${env.BUILD_NUMBER} \n More info at: ${env.BUILD_URL}"
                 )
