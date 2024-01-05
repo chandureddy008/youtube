@@ -5,6 +5,11 @@ pipeline {
         choice(name: 'action', choices: 'create\n delete', description: 'Select create or destroy.')
     }
 
+    tools {
+        jdk 'jdk17'
+        nodejs 'node16'
+    }
+
     stages {
         stage('clean workspace') {
             steps {
@@ -31,27 +36,6 @@ pipeline {
                     // Perform NPM installation steps here
                     // Your NPM installation code goes here
                     sh 'npm install' // Example npm installation command
-                }
-            }
-        }
-
-        stage('TRIVY FS SCAN') {
-            steps {
-                sh "trivy fs . > trivyfs.txt"
-            }
-        }
-
-        stage("Docker Build & Push") {
-            when {
-                expression { params.action == 'create' }
-            }
-            steps {
-                script {
-                    withDockerRegistry(credentialsId: 'docker', toolName: 'docker') {
-                        sh "docker build --build-arg REACT_APP_RAPID_API_KEY=8cfd7e3b87msh8c064094f8436bfp136b5ejsn052f66e47193 -t youtube ."
-                        sh "docker tag youtube chandureddy008/youtube:latest "
-                        sh "docker push chandureddy008/youtube:latest "
-                    }
                 }
             }
         }
