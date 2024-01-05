@@ -9,10 +9,6 @@ pipeline {
         jdk 'jdk17'
         nodejs 'node16'
     }
-
-    environment {
-        SCANNER_HOME = tool 'sonar-scanner'
-    }
     
     stages {
         stage('clean workspace') {
@@ -31,31 +27,6 @@ pipeline {
             }
         }
 
-        stage('SonarQube Analysis') {
-            when {
-                expression { params.action == 'create' }
-            }
-            steps {
-                script {
-                    // Perform SonarQube analysis steps here
-                    sonarqubeAnalysis()
-                    // Your SonarQube analysis code goes here
-                }
-            }
-        }
-
-        stage('SonarQube Quality Gate') {
-            when {
-                expression { params.action == 'create' }
-            }
-            steps {
-                script {
-                    def credentialsId = 'sonar'
-                    qualityGate(credentialsId)
-                }
-            }
-        }
-
         stage('Npm') {
             when {
                 expression { params.action == 'create' }
@@ -68,7 +39,28 @@ pipeline {
             }
         }
 
-        // Add other stages (Trivy file scan, OWASP FS SCAN, etc.) here
+        stage('Trivy file scan') {
+            when {
+                expression { params.action == 'create' }
+            }
+            steps {
+                script {
+                    trivyFs()
+                }
+            }
+        }
+
+        stage('OWASP FS SCAN') {
+            when {
+                expression { params.action == 'create' }
+            }
+            steps {
+                dependencyCheck additionalArguments: '--scan ./ --disableYarnAudit --disableNodeAudit', odcInstallation: 'DP-Check'
+                dependencyCheckPublisher pattern: '**/dependency-check-report.xml'
+            }
+        }
+
+        // Add other stages here
 
         stage('Slack Notifications') {
             when {
