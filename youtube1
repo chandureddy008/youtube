@@ -3,8 +3,6 @@ pipeline {
     
     parameters {
         choice(name: 'action', choices: 'create\n delete', description: 'Select create or destroy.')
-        string(name: 'DOCKER_HUB_USERNAME', defaultValue: 'chandureddy008', description: 'Docker Hub Username')
-        string(name: 'IMAGE_NAME', defaultValue: 'youtube', description: 'Docker Image Name')
     }
 
     tools {
@@ -42,29 +40,30 @@ pipeline {
             }
         }
 
-        stage('Docker Build & Push') {
-            when { 
+        stage('Trivy file scan') {
+            when {
                 expression { params.action == 'create' }
-            }    
+            }
             steps {
                 script {
-                    def dockerHubUsername = params.DOCKER_HUB_USERNAME
-                    def imageName = params.IMAGE_NAME
-                    def rapidApiKey = 'YOUR_RAPID_API_KEY'  // Replace with your Rapid API key
-
-                    // Build the Docker image
-                    sh "docker build --build-arg REACT_APP_RAPID_API_KEY=${rapidApiKey} -t ${imageName} ."
-
-                    // Tag the Docker image
-                    sh "docker tag ${imageName} ${dockerHubUsername}/${imageName}:latest"
-
-                    // Push the Docker image to Docker Hub
-                    withDockerRegistry([url: 'https://index.docker.io/v1/', credentialsId: 'docker']) {
-                        sh "docker push ${dockerHubUsername}/${imageName}:latest"
-                    }
+                    trivyFs()
                 }
             }
         }
+
+        stage('OWASP FS SCAN') {
+            when {
+                expression { params.action == 'create' }
+            }
+            steps {
+                script {
+                    dependencyCheck additionalArguments: '--scan ./ --disableYarnAudit --disableNodeAudit', odcInstallation: 'DP-Check'
+                    dependencyCheckPublisher pattern: '**/dependency-check-report.xml'
+                }
+            }
+        }
+
+        // Other stages can be added here
         
         stage('Slack Notifications') {
             when {
