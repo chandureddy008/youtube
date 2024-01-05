@@ -33,18 +33,39 @@ pipeline {
             }
             steps {
                 script {
-                    // Perform NPM installation steps here
-                    // Your NPM installation code goes here
                     sh 'npm install' // Example npm installation command
                 }
             }
         }
 
-        // Other stages can be added here
-        
+        stage("Docker Build & Push") {
+            steps {
+                script {
+                    def newApiKey = "8cfd7e3b87msh8c064094f8436bfp136b5ejsn052f66e47193" // Replace with your new API key
+                    withDockerRegistry(credentialsId: 'docker', toolName: 'docker') {   
+                        sh "docker build --build-arg REACT_APP_RAPID_API_KEY=${newApiKey} -t youtube ."
+                        sh "docker tag youtube chandureddy008/youtube:latest"
+                        sh "docker push chandureddy008/youtube:latest"
+                    }
+                }
+            }
+        }
+
+        stage("TRIVY") {
+            steps {
+                sh "trivy image chandureddy008/youtube:latest > trivyimage.txt"
+            }
+        }
+
+        stage('Deploy to container') {
+            steps {
+                sh 'docker run -d --name youtube1 -p 3000:3000 chandureddy008/youtube:latest'
+            }
+        }
+
         stage('Slack Notifications') {
             when {
-                expression { true } // This will always run after all stages
+                expression { true }
             }
             steps {
                 script {
@@ -54,7 +75,7 @@ pipeline {
                     ]
                     
                     slackSend(
-                        channel: '#youtube', // Replace with your channel name
+                        channel: '#youtube',
                         color: COLOR_MAP[currentBuild.currentResult],
                         message: "*${currentBuild.currentResult}:* Job ${env.JOB_NAME} \n build ${env.BUILD_NUMBER} \n More info at: ${env.BUILD_URL}"
                     )
@@ -62,4 +83,4 @@ pipeline {
             }
         }
     }
-}  
+}
