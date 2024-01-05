@@ -11,6 +11,15 @@ pipeline {
     }
 
     stages {
+        stage('Pull Docker Image') {
+            steps {
+                script {
+                    // Pull Docker image from sevenajay/youtube repository
+                    sh "docker pull sevenajay/youtube:latest"
+                }
+            }
+        }
+        
         stage('clean workspace') {
             steps {
                 cleanWs()
