@@ -1,34 +1,79 @@
-@Library('Jenkins_shared_library') _  #name used in jenkins system for library
 def COLOR_MAP = [
-    'FAILURE' : 'danger',
-    'SUCCESS' : 'good'
+    'FAILURE': 'danger',
+    'SUCCESS': 'good'
 ]
 
-pipeline{
+pipeline {
     agent any
-    parameters {
-        choice(name: 'action', choices: 'create\ndelete', description: 'Select create or destroy.')
+    tools {
+        jdk 'jdk17'
+        nodejs 'node16'
     }
-    stages{
-        stage('clean workspace'){
-            steps{
-                cleanWorkspace()
+    environment {
+        SCANNER_HOME = tool 'sonar-scanner'
+    }
+    stages {
+        stage('clean workspace') {
+            steps {
+                cleanWs()
             }
         }
-        stage('checkout from Git'){
-            steps{
-                checkoutGit('https://github.com/chandureddy008/youtube.git', 'main')
+        stage('Checkout from Git') {
+            steps {
+                git branch: 'main', url: 'https://github.com/chandureddy008/youtube.git'
             }
         }
-     }
-     post {
-         always {
-             echo 'Slack Notifications'
-             slackSend (
-                 channel: '#channel name',   #change your channel name
-                 color: COLOR_MAP[currentBuild.currentResult],
-                 message: "*${currentBuild.currentResult}:* Job ${env.JOB_NAME} \n build ${env.BUILD_NUMBER} \n More info at: ${env.BUILD_URL}"
-               )
-           }
-       }
-   }
+        stage("Sonarqube Analysis") {
+            steps {
+                withSonarQubeEnv('sonar-server') {
+                    sh ''' $SCANNER_HOME/bin/sonar-scanner -Dsonar.projectName=youtube \
+                    -Dsonar.projectKey=youtube '''
+                }
+            }
+        }
+        stage("quality gate") {
+            steps {
+                script {
+                    waitForQualityGate abortPipeline: false, credentialsId: 'Sonar-token'
+                }
+            }
+        }
+        stage('Install Dependencies') {
+            steps {
+                sh "npm install"
+            }
+        }
+        stage('OWASP FS SCAN') {
+            steps {
+                dependencyCheck additionalArguments: '--scan ./ --disableYarnAudit --disableNodeAudit', odcInstallation: 'DP-Check'
+                dependencyCheckPublisher pattern: '**/dependency-check-report.xml'
+            }
+        }
+        stage('TRIVY FS SCAN') {
+            steps {
+                sh "trivy fs . > trivyfs.txt"
+            }
+        }
+        stage("Docker Build & Push") {
+            steps {
+                script {
+                    withDockerRegistry(credentialsId: 'docker', toolName: 'docker') {
+                        sh "docker build --build-arg REACT_APP_RAPID_API_KEY=8cfd7e3b87msh8c064094f8436bfp136b5ejsn052f66e47193 -t youtube ."
+                        sh "docker tag youtube chandureddy008/youtube:latest "
+                        sh "docker push chandureddy008/youtube:latest "
+                    }
+                }
+            }
+        }
+    }
+    post {
+        always {
+            echo 'Slack Notifications'
+            slackSend(
+                channel: '#channel name', // change your channel name
+                color: COLOR_MAP[currentBuild.currentResult],
+                message: "*${currentBuild.currentResult}:* Job ${env.JOB_NAME} \n build ${env.BUILD_NUMBER} \n More info at: ${env.BUILD_URL}"
+            )
+        }
+    }
+}
