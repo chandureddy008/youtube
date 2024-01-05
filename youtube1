@@ -50,7 +50,7 @@ pipeline {
                     withDockerRegistry(credentialsId: 'docker', toolName: 'docker') {
                         sh "docker build --build-arg REACT_APP_RAPID_API_KEY=8cfd7e3b87msh8c064094f8436bfp136b5ejsn052f66e47193 -t youtube ."
                         sh "docker tag youtube chandureddy008/youtube:latest "
-                        sh "docker push sevenajay/youtube:latest "
+                        sh "docker push chandureddy008/youtube:latest "
                     }
                 }
             }
