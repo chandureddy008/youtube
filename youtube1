@@ -1,20 +1,25 @@
 pipeline {
     agent any
-
+    
     parameters {
+        choice(name: 'action', choices: 'create\n delete', description: 'Select create or destroy.')
         string(name: 'DOCKER_HUB_USERNAME', defaultValue: 'chandureddy008', description: 'Docker Hub Username')
         string(name: 'IMAGE_NAME', defaultValue: 'youtube', description: 'Docker Image Name')
-        choice(name: 'action', choices: 'create\n delete', description: 'Select create or destroy.')
+    }
+
+    tools {
+        jdk 'jdk17'
+        nodejs 'node16'
     }
 
     stages {
-        stage('Clean Workspace') {
+        stage('clean workspace') {
             steps {
                 cleanWs()
             }
         }
         
-        stage('Checkout from Git') {
+        stage('checkout from Git') {
             steps {
                 script {
                     checkout([$class: 'GitSCM',
@@ -30,6 +35,8 @@ pipeline {
             }
             steps {
                 script {
+                    // Perform NPM installation steps here
+                    // Your NPM installation code goes here
                     sh 'npm install' // Example npm installation command
                 }
             }
@@ -39,27 +46,29 @@ pipeline {
             when { 
                 expression { params.action == 'create' }
             }    
-            steps {
+            steps{
                 script {
-                    def dockerHubUsername = params.DOCKER_HUB_USERNAME
-                    def imageName = params.IMAGE_NAME
+                   def dockerHubUsername = params.DOCKER_HUB_USERNAME
+                   def imageName = params.IMAGE_NAME
 
-                    dockerBuild(dockerHubUsername, imageName)
+                   dockerBuild(dockerHubUsername, imageName)
                 }
             }
         }
         
-        stage('Trivy Image') {
+        stage('Trivy image') {
             when { 
                 expression { params.action == 'create' }
             }    
-            steps {
+            steps{
                 script {
                     trivyImage()
                 }
             }
         }
 
+        // Other stages can be added here
+        
         stage('Slack Notifications') {
             when {
                 expression { true } // This will always run after all stages
@@ -80,16 +89,4 @@ pipeline {
             }
         }
     }
-}
-
-def dockerBuild(dockerHubUsername, imageName) {
-    // Perform Docker build steps here using the provided parameters
-    // For example:
-    sh "docker build -t ${dockerHubUsername}/${imageName} ."
-}
-
-def trivyImage() {
-    // Perform Trivy image scanning steps here
-    // For example:
-    sh "trivy ${dockerHubUsername}/${imageName}"
 }
