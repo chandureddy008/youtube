@@ -40,29 +40,6 @@ pipeline {
             }
         }
 
-        stage('Trivy file scan') {
-            when {
-                expression { params.action == 'create' }
-            }
-            steps {
-                script {
-                    trivyFs()
-                }
-            }
-        }
-
-        stage('OWASP FS SCAN') {
-            when {
-                expression { params.action == 'create' }
-            }
-            steps {
-                script {
-                    dependencyCheck additionalArguments: '--scan ./ --disableYarnAudit --disableNodeAudit', odcInstallation: 'DP-Check'
-                    dependencyCheckPublisher pattern: '**/dependency-check-report.xml'
-                }
-            }
-        }
-
         // Other stages can be added here
         
         stage('Slack Notifications') {
