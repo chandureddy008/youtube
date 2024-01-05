@@ -33,4 +33,58 @@ pipeline {
 
         stage('SonarQube Analysis') {
             when {
-                expression { params.action
+                expression { params.action == 'create' }
+            }
+            steps {
+                script {
+                    // Perform SonarQube analysis steps here
+                }
+            }
+        }
+
+        stage('SonarQube Quality Gate') {
+            when {
+                expression { params.action == 'create' }
+            }
+            steps {
+                script {
+                    def credentialsId = 'sonar'
+                    qualityGate(credentialsId)
+                }
+            }
+        }
+
+        stage('Npm') {
+            when {
+                expression { params.action == 'create' }
+            }
+            steps {
+                script {
+                    // Perform NPM installation steps here
+                }
+            }
+        }
+
+        // Other stages can be added here
+        
+        stage('Slack Notifications') {
+            when {
+                expression { true } // This will always run after all stages
+            }
+            steps {
+                script {
+                    def COLOR_MAP = [
+                        FAILURE: 'danger',
+                        SUCCESS: 'good'
+                    ]
+                    
+                    slackSend(
+                        channel: '#youtube', // Replace with your channel name
+                        color: COLOR_MAP[currentBuild.currentResult],
+                        message: "*${currentBuild.currentResult}:* Job ${env.JOB_NAME} \n build ${env.BUILD_NUMBER} \n More info at: ${env.BUILD_URL}"
+                    )
+                }
+            }
+        }
+    }
+}
