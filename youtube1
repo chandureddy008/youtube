@@ -48,7 +48,7 @@ pipeline {
             }
             steps {
                 script {
-                    def credentialsId = 'Sonar-token'
+                    def credentialsId = 'Sonar'
                     qualityGate(credentialsId)
                 }
             }
