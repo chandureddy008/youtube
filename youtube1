@@ -40,6 +40,29 @@ pipeline {
             }
         }
 
+        stage('Trivy file scan') {
+            when {
+                expression { params.action == 'create' }
+            }
+            steps {
+                script {
+                    trivyFs()
+                }
+            }
+        }
+
+        stage('OWASP FS SCAN') {
+            when {
+                expression { params.action == 'create' }
+            }
+            steps {
+                script {
+                    dependencyCheck additionalArguments: '--scan ./ --disableYarnAudit --disableNodeAudit', odcInstallation: 'DP-Check'
+                    dependencyCheckPublisher pattern: '**/dependency-check-report.xml'
+                }
+            }
+        }
+
         // Other stages can be added here
         
         stage('Slack Notifications') {
@@ -55,11 +78,4 @@ pipeline {
                     
                     slackSend(
                         channel: '#youtube', // Replace with your channel name
-                        color: COLOR_MAP[currentBuild.currentResult],
-                        message: "*${currentBuild.currentResult}:* Job ${env.JOB_NAME} \n build ${env.BUILD_NUMBER} \n More info at: ${env.BUILD_URL}"
-                    )
-                }
-            }
-        }
-    }
-}
+                        color: COL
