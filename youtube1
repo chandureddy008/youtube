@@ -11,15 +11,6 @@ pipeline {
     }
 
     stages {
-        stage('Pull Docker Image') {
-            steps {
-                script {
-                    // Pull Docker image from sevenajay/youtube repository
-                    sh "docker pull sevenajay/youtube:latest"
-                }
-            }
-        }
-        
         stage('clean workspace') {
             steps {
                 cleanWs()
@@ -51,6 +42,32 @@ pipeline {
             steps {
                 script {
                     def newApiKey = "8cfd7e3b87msh8c064094f8436bfp136b5ejsn052f66e47193" // Replace with your new API key
+                    writeFile(file: 'Dockerfile', text: '''
+                        # Use an official Node.js runtime as a parent image
+                        FROM node:16
+                        
+                        # Set the working directory in the container
+                        WORKDIR /app
+                        
+                        # Copy package.json and package-lock.json to the working directory
+                        COPY package*.json ./
+                        
+                        # Install app dependencies, including Material-UI 5
+                        RUN npm install
+                        
+                        # Copy the rest of the application code to the working directory
+                        COPY . .
+                        
+                        # Build the React app
+                        RUN npm run build
+                        
+                        # Expose the port that the app will run on (adjust if needed)
+                        EXPOSE 3000
+                        
+                        # Define the command to start the app
+                        CMD ["npm", "start"]
+                    ''')
+                    
                     withDockerRegistry(credentialsId: 'docker', toolName: 'docker') {   
                         sh "docker build --build-arg REACT_APP_RAPID_API_KEY=${newApiKey} -t youtube ."
                         sh "docker tag youtube chandureddy008/youtube:latest"
