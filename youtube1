@@ -10,10 +10,6 @@ pipeline {
         nodejs 'node16'
     }
 
-    environment {
-        SCANNER_HOME = tool 'sonar-scanner'
-    }
-    
     stages {
         stage('clean workspace') {
             steps {
@@ -31,29 +27,6 @@ pipeline {
             }
         }
 
-        stage('SonarQube Analysis') {
-            when {
-                expression { params.action == 'create' }
-            }
-            steps {
-                script {
-                    // Perform SonarQube analysis steps here
-                }
-            }
-        }
-
-        stage('SonarQube Quality Gate') {
-            when {
-                expression { params.action == 'create' }
-            }
-            steps {
-                script {
-                    def credentialsId = 'sonar'
-                    qualityGate(credentialsId)
-                }
-            }
-        }
-
         stage('Npm') {
             when {
                 expression { params.action == 'create' }
@@ -67,8 +40,8 @@ pipeline {
             }
         }
 
-        // Add other stages (Trivy file scan, OWASP FS SCAN, etc.) here
-
+        // Other stages can be added here
+        
         stage('Slack Notifications') {
             when {
                 expression { true } // This will always run after all stages
